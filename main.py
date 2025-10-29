@@ -63,7 +63,7 @@ import os
 def to_csv(username, email, phonenumber, password1, address, latitude, longitude, provider_type, provider_name, state, city_name):
     # Clean and prepare filename
     filename = f"{state}_{city_name}_{provider_type}.csv".replace(" ", "_").lower()
-    folder = "washington"
+    folder = "Georgia"
     os.makedirs(folder, exist_ok=True)
     filepath = os.path.join(folder, filename)
 
@@ -89,6 +89,27 @@ def to_csv(username, email, phonenumber, password1, address, latitude, longitude
         ])
 
 
+def urls_to_csv(urls, state, city_name, provider_type):
+    # Clean and prepare filename
+    filename = f"{state}_{city_name}_{provider_type}_urls.csv".replace(" ", "_").lower()
+    folder = "Georgia"
+    os.makedirs(folder, exist_ok=True)
+    filepath = os.path.join(folder, filename)
+
+    # Check if file already exists to write header only once
+    file_exists = os.path.isfile(filepath)
+
+    with open(filepath, mode='a', newline='', encoding='utf-8') as file:
+        writer = csv.writer(file)
+
+        if not file_exists:
+            writer.writerow(['Url'])
+
+        for url in urls:
+            writer.writerow([url])
+
+
+
 def scrape_url(urls, driver, key, last_init_time, state, city_name):
     url_count = 1
     for url in urls:
@@ -103,6 +124,7 @@ def scrape_url(urls, driver, key, last_init_time, state, city_name):
             driver = init_stealth_driver()
             last_init_time = time.time()
         try:
+            time.sleep(1)
             driver.get(f"{url}")
             time.sleep(3)
             username_element = driver.find_element(By.CLASS_NAME, 'sales-info')
@@ -284,12 +306,14 @@ def init_stealth_driver():
         "profile.default_content_settings.popups": 0,
         "profile.managed_default_content_settings.images": 2
     })
-    driver = uc.Chrome(options=options, headless=False)
+    driver = uc.Chrome(driver_executable_path='/home/shahid/bin/chromedriver', options=options, headless=False)
+
     driver.set_page_load_timeout(90)
     return driver
 
 
 def scrape_yellow_pages():
+    print("SCRAPPING STARTED.....")
     driver = init_stealth_driver()
     last_init_time = time.time()  # Initialize the time tracking
     driver.get("https://www.yellowpages.com/sitemap")
@@ -300,7 +324,7 @@ def scrape_yellow_pages():
     #           "me", "mi", "mn", "mo", "ms", "mt", "nc", "nd", "ne", "nh", "nj", "nm", "nv", "ny", "oh", "ok", "or", "pa", "ri", "sc", 
     #           "sd", "tn", "tx", "ut", "va", "vt", "wa", "wi", "wv", "wy"]
     
-    states = ["wa"]
+    states = ["ga"]
 
     # alphabets = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"]
 
@@ -313,23 +337,28 @@ def scrape_yellow_pages():
             time.sleep(3)
 
             provider_types = {
-                'diagnostic-center': 'medical diagnostic center',
-                'primary-care': 'primary care',
-                'urgent-care': 'urgent care',
-                'dental-care': 'dental care',
-                'vision-care': 'medical vision care',
-                'imaging-labs': 'medical imaging labs',
+                # 'diagnostic-center': 'medical diagnostic center',
+                # 'primary-care': 'primary care',
+                # 'urgent-care': 'urgent care',   
+                # 'vision-care': 'medical vision care',
+                # 'imaging-labs': 'medical imaging labs',
                 'chiropractics': 'chiropractics',
-                'physiotherapy': 'physiotherapy'
+                'dental-care': 'dental care',
+                # 'physiotherapy': 'physiotherapy'
             }
+
+
 
             cities_content = driver.find_element(By.CLASS_NAME, 'list-content')
             cities_url_elements = cities_content.find_elements(By.TAG_NAME, 'a')
             # cities_url = [a.get_attribute('href') for a in cities_url_elements]
             # cities = [a.text for a in cities_url_elements]
 
-            cities_url = ["https://www.yellowpages.com/aberdeen-wa", "https://www.yellowpages.com/acme-wa", "https://www.yellowpages.com/addy-wa", "https://www.yellowpages.com/adna-wa"]
-            cities = ["aberdeen", "acme", "addy", "adna"]
+            # cities_url = ["https://www.yellowpages.com/acme-wa", "https://www.yellowpages.com/alger-wa", "https://www.yellowpages.com/algona-wa"]
+            # cities = ["airway-heights", "albion", "alger", "algona"]
+
+            cities_url = ["https://www.yellowpages.com/alpharetta-ga"]
+            cities = ["alpharetta"]
 
             for city_url,city_name in zip(cities_url, cities):
                 print(city_url)
@@ -446,7 +475,8 @@ def scrape_yellow_pages():
                     print(f"Unique URLs after deduplication: {len(all_urls)}")
                     
                     if all_urls:
-                        driver, last_init_time = scrape_url(all_urls, driver, key, last_init_time, state, city_name)
+                        urls_to_csv(all_urls, state, city_name, key)
+                        # driver, last_init_time = scrape_url(all_urls, driver, key, last_init_time, state, city_name)
     
     try:
         driver.quit()
